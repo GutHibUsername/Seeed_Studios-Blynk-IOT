@@ -10,7 +10,7 @@ https://wiki.seeedstudio.com/Grove-TemperatureAndHumidity_Sensor/
 https://wiki.seeedstudio.com/Wio_Terminal_Intro/
 
 
-https://blynk.io/
+https://docs.blynk.io/en/getting-started/template-quick-setup
 
 Eventually > https://blynk.cloud/dashboard/
 
