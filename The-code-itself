@@ -1,0 +1,76 @@
+#define BLYNK_TEMPLATE_ID           "####"
+#define BLYNK_TEMPLATE_NAME         "Quickstart Device"
+#define BLYNK_AUTH_TOKEN            "####"
+
+// How to know if your stuff is working - won't print the humidity values unless already connected to the internet
+#define BLYNK_PRINT Serial
+
+#include <rpcWiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleWioTerminal.h>
+#include "DHT.h" //DHT library
+
+#define DHTPIN 0 //Define Signal Pin of DHT
+#define DHTTYPE DHT11 //Define DHT Sensor Type
+
+DHT dht(DHTPIN, DHTTYPE); //Initializing DHT sensor
+
+// Your WiFi credentials.
+char ssid[] = "##NAME OF WIFI NETWORK##";
+char pass[] = "##NAME OF WIFI NETWORK##";
+
+BlynkTimer timer;
+bool notified = false;
+
+// This function is called every 180 seconds
+void myTimerEvent() {
+    int h = dht.readHumidity(); // Read humidity
+    Serial.print("Humidity: ");
+    Serial.println(h); // Print humidity value to Serial Monitor
+
+    if (!isnan(h)) {
+        Blynk.virtualWrite(V4, h); // Send humidity to Virtual Pin V4
+        
+        // Check if humidity is at or above 60%
+        handleBlynkAndBuzzer(h);
+    } else {
+        // I don't think it's even possible to get this error message
+        Serial.println("Failed to read humidity!");
+    }
+}
+
+void setup() {
+    // Debug console
+    Serial.begin(9600);
+    Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+    // Setup a function to be called every 180 seconds
+    timer.setInterval(180000L, myTimerEvent); // Corrected interval to 180 seconds
+
+    dht.begin(); // Start DHT sensor
+}
+
+void loop() {
+    Blynk.run();
+    timer.run();
+}
+
+void handleBlynkAndBuzzer(int h) { // Use h as the parameter
+    if (h >= 60 && !notified) {
+        Blynk.logEvent("humidity_warning", "Humidity is too high. Consider emptying your dehumidifier, cooling the air, or removing sources of evaporating water.");
+        notified = true; // Set notified to true to avoid multiple notifications
+        Blynk.virtualWrite(V10, 1); // Turn on the LED widget
+        Blynk.virtualWrite(V11, 0); // Turn off the LED widget
+        notified = false;
+    } else if (h <= 30 && !notified) {
+        Blynk.logEvent("humidity_concern", "Humidity is too low. Consider using a humidifier, warming the air, or leaving out an open bucket of water to evaporate.");
+        Blynk.virtualWrite(V11, 1); // Turn on the LED widget
+        Blynk.virtualWrite(V10, 0); // Turn off the LED widget
+        notified = true; // Set notified to true to avoid multiple notifications
+        notified = false; // I haven't tested if this "notified = false;" line is necessary in every line, but it can't do any harm
+    } else {
+        notified = false; // Reset notified flag if humidity is okay
+        Blynk.virtualWrite(V11, 0); // Turn off the LED widget
+        Blynk.virtualWrite(V10, 0); // Turn off the LED widget
+    }
+}
